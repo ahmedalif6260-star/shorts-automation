@@ -9,25 +9,25 @@ W, H = 1080, 1920
 
 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
-title_font = ImageFont.truetype(font_path, 72)
-big_font = ImageFont.truetype(font_path, 48)
-small_font = ImageFont.truetype(font_path, 38)
+title_font = ImageFont.truetype(font_path, 70)
+text_font = ImageFont.truetype(font_path, 46)
+small_font = ImageFont.truetype(font_path, 34)
 
-# Read generated script
+# Read topic
+with open("topic.txt", "r", encoding="utf-8") as f:
+    topic = f.read().strip()
+
+# Read script
 with open("script.txt", "r", encoding="utf-8") as f:
     script = f.read().strip()
 
-if not script:
-    raise Exception("script.txt is empty")
+# Read downloaded visual
+visual_path = "visuals/topic.jpg"
 
-# Read topic
-topic = "Trending Story"
+if not os.path.exists(visual_path):
+    raise Exception("Visual image not found")
 
-for line in script.splitlines():
-    if line.startswith("HOOK:"):
-        continue
-
-# Extract sections
+# Extract script sections
 hook = ""
 main_story = ""
 ending = ""
@@ -42,13 +42,13 @@ if "ENDING:" in script:
     ending = script.split("ENDING:", 1)[1].strip()
 
 if not hook:
-    hook = "Here is what you need to know."
+    hook = f"Here is what you need to know about {topic}."
 
 if not main_story:
     main_story = script
 
 if not ending:
-    ending = "Follow for more quick updates."
+    ending = "Follow for more updates."
 
 slides = [
     ("TRENDING NOW", hook),
@@ -56,7 +56,10 @@ slides = [
     ("FOLLOW FOR MORE", ending)
 ]
 
-# Voice text
+# Prepare visual
+base = Image.open(visual_path).convert("RGB")
+
+# Voice
 voice_text = f"""
 {hook}
 
@@ -77,42 +80,92 @@ subprocess.run([
     voice_text
 ], check=True)
 
-# Create video slides
+# Create visual slides
 for i, (title, text) in enumerate(slides):
 
-    img = Image.new("RGB", (W, H), (8, 15, 35))
+    img = base.copy()
+
+    # Crop image to 9:16
+    img_ratio = img.width / img.height
+    target_ratio = W / H
+
+    if img_ratio > target_ratio:
+        new_width = int(img.height * target_ratio)
+        left = (img.width - new_width) // 2
+        img = img.crop((left, 0, left + new_width, img.height))
+    else:
+        new_height = int(img.width / target_ratio)
+        top = (img.height - new_height) // 2
+        img = img.crop((0, top, img.width, top + new_height))
+
+    img = img.resize((W, H))
+
     draw = ImageDraw.Draw(img)
 
-    # Decorative circles
-    draw.ellipse(
-        (40, 120, 280, 360),
-        fill=(25, 55, 100)
+    # Dark overlay for readable text
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+
+    overlay_draw.rectangle(
+        (0, 0, W, H),
+        fill=(0, 0, 0, 75)
     )
 
-    draw.ellipse(
-        (820, 1450, 1060, 1690),
-        fill=(20, 70, 100)
+    img = Image.alpha_composite(
+        img.convert("RGBA"),
+        overlay
+    ).convert("RGB")
+
+    draw = ImageDraw.Draw(img)
+
+    # Top topic
+    topic_text = topic.upper()
+
+    box = draw.textbbox(
+        (0, 0),
+        topic_text,
+        font=small_font
     )
 
-    # Title
-    box = draw.textbbox((0, 0), title, font=title_font)
+    topic_width = box[2] - box[0]
+
+    draw.text(
+        ((W - topic_width) / 2, 180),
+        topic_text,
+        fill="white",
+        font=small_font
+    )
+
+    # Title background
+    draw.rounded_rectangle(
+        (50, 450, 1030, 620),
+        radius=30,
+        fill=(0, 0, 0)
+    )
+
+    box = draw.textbbox(
+        (0, 0),
+        title,
+        font=title_font
+    )
+
     title_width = box[2] - box[0]
 
     draw.text(
-        ((W - title_width) / 2, 450),
+        ((W - title_width) / 2, 490),
         title,
         fill="white",
         font=title_font
     )
 
-    # Text box
+    # Caption box
     draw.rounded_rectangle(
-        (70, 750, 1010, 1400),
+        (55, 900, 1025, 1450),
         radius=35,
-        fill=(20, 30, 55)
+        fill=(0, 0, 0)
     )
 
-    # Wrap text
+    # Wrap caption
     words = text.split()
     lines = []
     line = ""
@@ -124,10 +177,10 @@ for i, (title, text) in enumerate(slides):
         box = draw.textbbox(
             (0, 0),
             test_line,
-            font=big_font
+            font=text_font
         )
 
-        if box[2] - box[0] < 820:
+        if box[2] - box[0] < 850:
             line = test_line
         else:
             if line:
@@ -138,15 +191,14 @@ for i, (title, text) in enumerate(slides):
     if line:
         lines.append(line)
 
-    # Draw lines
-    y = 850
+    y = 990
 
-    for line in lines[:8]:
+    for line in lines[:7]:
 
         box = draw.textbbox(
             (0, 0),
             line,
-            font=big_font
+            font=text_font
         )
 
         line_width = box[2] - box[0]
@@ -155,10 +207,28 @@ for i, (title, text) in enumerate(slides):
             ((W - line_width) / 2, y),
             line,
             fill="white",
-            font=big_font
+            font=text_font
         )
 
-        y += 70
+        y += 65
+
+    # Bottom CTA
+    cta = "FOLLOW FOR MORE"
+
+    box = draw.textbbox(
+        (0, 0),
+        cta,
+        font=small_font
+    )
+
+    cta_width = box[2] - box[0]
+
+    draw.text(
+        ((W - cta_width) / 2, 1680),
+        cta,
+        fill="white",
+        font=small_font
+    )
 
     img.save(f"frames/frame{i}.png")
 
@@ -174,7 +244,7 @@ with open("frames/list.txt", "w") as f:
 silent_video = "output/silent.mp4"
 final_video = "output/short.mp4"
 
-# Video
+# Create video
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -206,6 +276,8 @@ subprocess.run([
 ], check=True)
 
 print("================================")
-print("VIDEO CREATED SUCCESSFULLY")
-print("================================")
+print("VISUAL SHORT CREATED SUCCESSFULLY")
+print("Topic:", topic)
+print("Visual:", visual_path)
 print("Output:", final_video)
+print("================================")
