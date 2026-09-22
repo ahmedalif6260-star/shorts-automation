@@ -20,10 +20,10 @@ jobs:
         run: |
           pip install pillow
 
-      - name: Install FFmpeg
+      - name: Install FFmpeg and Voice Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg espeak-ng
 
       - name: Run Shorts generator
         run: |
