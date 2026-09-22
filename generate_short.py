@@ -12,48 +12,86 @@ title_font = ImageFont.truetype(font_path, 72)
 big_font = ImageFont.truetype(font_path, 58)
 small_font = ImageFont.truetype(font_path, 38)
 
-# Topic can be changed from GitHub Actions later
-topic = os.environ.get("SHORT_TOPIC", "Human Brain")
+topic = os.environ.get("SHORT_TOPIC", "Human Brain").strip()
 
-# Current test content
-slides = [
-    (
-        "3 AMAZING",
-        "BRAIN FACTS",
-        "Did you know these facts about the human brain?"
-    ),
-    (
-        "FACT #1",
-        "20% OF YOUR ENERGY",
-        "Your brain uses about 20% of your body's energy."
-    ),
-    (
-        "FACT #2",
-        "86 BILLION NEURONS",
-        "Your brain contains around 86 billion neurons."
-    ),
-    (
-        "FACT #3",
-        "THOUSANDS OF THOUGHTS",
-        "Your brain can create thousands of thoughts every day."
-    ),
-]
+# Free built-in topic library.
+# We can add more topics later.
+topics = {
+    "human brain": {
+        "title": "3 AMAZING BRAIN FACTS",
+        "slides": [
+            ("FACT #1", "20% OF YOUR ENERGY",
+             "Your brain uses about 20% of your body's energy."),
+            ("FACT #2", "86 BILLION NEURONS",
+             "Your brain contains around 86 billion neurons."),
+            ("FACT #3", "THOUSANDS OF THOUGHTS",
+             "Your brain can create thousands of thoughts every day.")
+        ]
+    },
+
+    "space facts": {
+        "title": "3 AMAZING SPACE FACTS",
+        "slides": [
+            ("FACT #1", "SUNLIGHT TAKES 8 MINUTES",
+             "Light from the Sun takes about 8 minutes to reach Earth."),
+            ("FACT #2", "SPACE IS SILENT",
+             "Sound cannot travel through the vacuum of outer space."),
+            ("FACT #3", "JUPITER IS HUGE",
+             "More than 1,300 Earths could fit inside Jupiter by volume.")
+        ]
+    },
+
+    "animal facts": {
+        "title": "3 AMAZING ANIMAL FACTS",
+        "slides": [
+            ("FACT #1", "OCTOPUSES HAVE THREE HEARTS",
+             "An octopus has three hearts and blue blood."),
+            ("FACT #2", "ELEPHANTS HAVE GREAT MEMORY",
+             "Elephants can remember other elephants and important places."),
+            ("FACT #3", "CHEETAHS ARE FAST",
+             "Cheetahs can reach speeds of around 60 miles per hour.")
+        ]
+    },
+
+    "ocean facts": {
+        "title": "3 AMAZING OCEAN FACTS",
+        "slides": [
+            ("FACT #1", "MOST OF EARTH IS OCEAN",
+             "Oceans cover roughly seventy percent of Earth's surface."),
+            ("FACT #2", "THE OCEAN IS DEEP",
+             "The deepest parts of the ocean reach almost eleven kilometers."),
+            ("FACT #3", "LIFE EXISTS DEEP DOWN",
+             "Many unusual creatures live in the dark deep ocean.")
+        ]
+    }
+}
+
+key = topic.lower()
+
+if key in topics:
+    content = topics[key]
+else:
+    content = topics["human brain"]
+
+slides = content["slides"]
 
 voice_text = f"""
-Here are three amazing facts about the human brain.
+Here are three amazing facts about {topic}.
 
-Fact number one.
-Your brain uses about twenty percent of your body's energy.
+"""
 
-Fact number two.
-Your brain contains around eighty-six billion neurons.
+for number, subtitle, caption in slides:
+    voice_text += f"""
+{number.replace("FACT #", "Fact number ")}.
+{caption}
 
-Fact number three.
-Your brain can create thousands of thoughts every day.
+"""
 
+voice_text += """
 Follow for more amazing facts.
 """
 
+# Generate English voice
 voice_file = "output/voice.wav"
 
 subprocess.run([
@@ -66,67 +104,76 @@ subprocess.run([
     voice_text
 ], check=True)
 
-for i, (title, subtitle, caption) in enumerate(slides):
+# Create visual slides
+for i, (label, subtitle, caption) in enumerate(slides):
 
     img = Image.new("RGB", (W, H), (8, 15, 35))
     draw = ImageDraw.Draw(img)
 
-    draw.ellipse((60, 150, 300, 390), fill=(25, 55, 100))
-    draw.ellipse((800, 1450, 1050, 1700), fill=(20, 70, 100))
-    draw.ellipse((850, 250, 1020, 420), fill=(30, 45, 90))
+    # Background decoration
+    draw.ellipse((50, 150, 300, 400), fill=(25, 55, 100))
+    draw.ellipse((800, 1450, 1060, 1710), fill=(20, 70, 100))
+    draw.ellipse((850, 250, 1030, 430), fill=(30, 45, 90))
 
-    label = topic.upper()
-    box = draw.textbbox((0, 0), label, font=small_font)
-    label_w = box[2] - box[0]
+    # Topic
+    topic_display = topic.upper()
+
+    box = draw.textbbox((0, 0), topic_display, font=small_font)
+    topic_width = box[2] - box[0]
 
     draw.text(
-        ((W - label_w) / 2, 260),
-        label,
+        ((W - topic_width) / 2, 250),
+        topic_display,
         fill="white",
         font=small_font
     )
 
-    box = draw.textbbox((0, 0), title, font=title_font)
-    title_w = box[2] - box[0]
+    # Fact label
+    box = draw.textbbox((0, 0), label, font=title_font)
+    label_width = box[2] - box[0]
 
     draw.text(
-        ((W - title_w) / 2, 620),
-        title,
+        ((W - label_width) / 2, 600),
+        label,
         fill="white",
         font=title_font
     )
 
+    # Subtitle
     box = draw.textbbox((0, 0), subtitle, font=big_font)
-    sub_w = box[2] - box[0]
+    subtitle_width = box[2] - box[0]
 
     draw.text(
-        ((W - sub_w) / 2, 780),
+        ((W - subtitle_width) / 2, 770),
         subtitle,
         fill="white",
         font=big_font
     )
 
+    # Caption box
     draw.rounded_rectangle(
-        (90, 1050, 990, 1370),
+        (80, 1040, 1000, 1390),
         radius=35,
         fill=(20, 30, 55)
     )
 
+    # Wrap caption
     words = caption.split()
     lines = []
     line = ""
 
     for word in words:
-        test = (line + " " + word).strip()
+
+        test_line = (line + " " + word).strip()
 
         box = draw.textbbox(
             (0, 0),
-            test,
+            test_line,
             font=small_font
         )
 
         if box[2] - box[0] < 760:
-            line = test
+            line = test_line
         else:
             if line:
                 lines.append(line)
@@ -135,7 +182,7 @@ for i, (title, subtitle, caption) in enumerate(slides):
     if line:
         lines.append(line)
 
-    y = 1120
+    y = 1110
 
     for line in lines:
 
@@ -145,10 +192,10 @@ for i, (title, subtitle, caption) in enumerate(slides):
             font=small_font
         )
 
-        line_w = box[2] - box[0]
+        line_width = box[2] - box[0]
 
         draw.text(
-            ((W - line_w) / 2, y),
+            ((W - line_width) / 2, y),
             line,
             fill="white",
             font=small_font
@@ -156,12 +203,14 @@ for i, (title, subtitle, caption) in enumerate(slides):
 
         y += 65
 
+    # CTA
     cta = "FOLLOW FOR MORE"
+
     box = draw.textbbox((0, 0), cta, font=small_font)
-    cta_w = box[2] - box[0]
+    cta_width = box[2] - box[0]
 
     draw.text(
-        ((W - cta_w) / 2, 1530),
+        ((W - cta_width) / 2, 1540),
         cta,
         fill="white",
         font=small_font
@@ -169,6 +218,7 @@ for i, (title, subtitle, caption) in enumerate(slides):
 
     img.save(f"frames/frame{i}.png")
 
+# Create concat list
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
@@ -180,6 +230,7 @@ with open("frames/list.txt", "w") as f:
 silent_video = "output/silent.mp4"
 final_video = "output/short.mp4"
 
+# Create video
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -194,6 +245,7 @@ subprocess.run([
     silent_video
 ], check=True)
 
+# Add voice
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -209,6 +261,9 @@ subprocess.run([
     final_video
 ], check=True)
 
+print("================================")
 print("SHORTS CREATED SUCCESSFULLY")
 print("Topic:", topic)
+print("Voice + Visuals + Captions ready")
 print("Output:", final_video)
+print("================================")
