@@ -2,6 +2,12 @@ name: Shorts Automation Test
 
 on:
   workflow_dispatch:
+    inputs:
+      topic:
+        description: "Enter Shorts topic"
+        required: true
+        default: "Human Brain"
+        type: string
 
 jobs:
   generate:
@@ -26,6 +32,8 @@ jobs:
           sudo apt-get install -y ffmpeg espeak-ng
 
       - name: Run Shorts generator
+        env:
+          SHORT_TOPIC: ${{ inputs.topic }}
         run: |
           python generate_short.py
 
