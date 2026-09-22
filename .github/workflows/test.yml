@@ -1,24 +1,32 @@
-import os
-import subprocess
+name: Shorts Automation Test
 
-os.makedirs("output", exist_ok=True)
+on:
+  workflow_dispatch:
 
-video_text = "অক্টোপাসের ৩টি হৃদপিণ্ড আছে!"
+jobs:
+  generate:
+    runs-on: ubuntu-latest
 
-cmd = [
-    "ffmpeg",
-    "-y",
-    "-f", "lavfi",
-    "-i", "color=c=blue:s=1080x1920:d=8",
-    "-vf",
-    f"drawtext=text='{video_text}':fontcolor=white:fontsize=70:"
-    "x=(w-text_w)/2:y=(h-text_h)/2",
-    "-c:v", "libx264",
-    "-pix_fmt", "yuv420p",
-    "-movflags", "+faststart",
-    "output/short.mp4"
-]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-subprocess.run(cmd, check=True)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-print("Short video created successfully!")
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run Shorts generator
+        run: |
+          python generate_short.py
+
+      - name: Upload generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-short
+          path: output/short.mp4
