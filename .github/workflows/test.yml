@@ -1,19 +1,14 @@
-name: Shorts Automation Test
+name: Viral Shorts Automation
 
 on:
   workflow_dispatch:
-    inputs:
-      topic:
-        description: "Enter Shorts topic"
-        required: true
-        default: "Human Brain"
-        type: string
 
 jobs:
-  generate:
+  trending_test:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -22,23 +17,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Pillow
+      - name: Install requests
         run: |
-          pip install pillow
+          pip install requests
 
-      - name: Install FFmpeg and Voice Tools
+      - name: Get Trending Topics
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng
-
-      - name: Run Shorts generator
-        env:
-          SHORT_TOPIC: ${{ inputs.topic }}
-        run: |
-          python generate_short.py
-
-      - name: Upload generated video
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-short
-          path: output/short.mp4
+          python get_trending.py
