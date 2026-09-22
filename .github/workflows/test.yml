@@ -1,4 +1,35 @@
-- name: Create Shorts Script
+name: Viral Shorts Automation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trending_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python packages
+        run: |
+          pip install requests pillow
+
+      - name: Install FFmpeg and Voice Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+
+      - name: Get Trending Topic
+        run: |
+          python get_trending.py
+
+      - name: Create Shorts Script
         run: |
           python make_script.py
 
@@ -15,3 +46,9 @@
       - name: Create Shorts Video
         run: |
           python generate_short.py
+
+      - name: Upload generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-short
+          path: output/short.mp4
