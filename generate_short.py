@@ -12,39 +12,15 @@ title_font = ImageFont.truetype(font_path, 72)
 big_font = ImageFont.truetype(font_path, 58)
 small_font = ImageFont.truetype(font_path, 38)
 
-voice_text = """
-Here are three amazing facts about the human brain.
+# Topic can be changed from GitHub Actions later
+topic = os.environ.get("SHORT_TOPIC", "Human Brain")
 
-Fact number one.
-Your brain uses about twenty percent of your body's energy.
-
-Fact number two.
-Your brain contains around eighty-six billion neurons.
-
-Fact number three.
-Your brain can create thousands of thoughts every day.
-
-Follow for more amazing facts.
-"""
-
-# Generate free English voice
-voice_file = "output/voice.wav"
-
-subprocess.run([
-    "espeak-ng",
-    "-v", "en-us",
-    "-s", "150",
-    "-p", "50",
-    "-a", "170",
-    "-w", voice_file,
-    voice_text
-], check=True)
-
+# Current test content
 slides = [
     (
         "3 AMAZING",
         "BRAIN FACTS",
-        "Did you know these facts about your brain?"
+        "Did you know these facts about the human brain?"
     ),
     (
         "FACT #1",
@@ -63,18 +39,43 @@ slides = [
     ),
 ]
 
+voice_text = f"""
+Here are three amazing facts about the human brain.
+
+Fact number one.
+Your brain uses about twenty percent of your body's energy.
+
+Fact number two.
+Your brain contains around eighty-six billion neurons.
+
+Fact number three.
+Your brain can create thousands of thoughts every day.
+
+Follow for more amazing facts.
+"""
+
+voice_file = "output/voice.wav"
+
+subprocess.run([
+    "espeak-ng",
+    "-v", "en-us",
+    "-s", "150",
+    "-p", "50",
+    "-a", "170",
+    "-w", voice_file,
+    voice_text
+], check=True)
+
 for i, (title, subtitle, caption) in enumerate(slides):
 
     img = Image.new("RGB", (W, H), (8, 15, 35))
     draw = ImageDraw.Draw(img)
 
-    # Decorative circles
     draw.ellipse((60, 150, 300, 390), fill=(25, 55, 100))
     draw.ellipse((800, 1450, 1050, 1700), fill=(20, 70, 100))
     draw.ellipse((850, 250, 1020, 420), fill=(30, 45, 90))
 
-    # Small top label
-    label = "AMAZING FACTS"
+    label = topic.upper()
     box = draw.textbbox((0, 0), label, font=small_font)
     label_w = box[2] - box[0]
 
@@ -85,7 +86,6 @@ for i, (title, subtitle, caption) in enumerate(slides):
         font=small_font
     )
 
-    # Main title
     box = draw.textbbox((0, 0), title, font=title_font)
     title_w = box[2] - box[0]
 
@@ -96,7 +96,6 @@ for i, (title, subtitle, caption) in enumerate(slides):
         font=title_font
     )
 
-    # Subtitle
     box = draw.textbbox((0, 0), subtitle, font=big_font)
     sub_w = box[2] - box[0]
 
@@ -107,25 +106,17 @@ for i, (title, subtitle, caption) in enumerate(slides):
         font=big_font
     )
 
-    # Caption box
-    box_x1 = 90
-    box_y1 = 1050
-    box_x2 = 990
-    box_y2 = 1370
-
     draw.rounded_rectangle(
-        (box_x1, box_y1, box_x2, box_y2),
+        (90, 1050, 990, 1370),
         radius=35,
         fill=(20, 30, 55)
     )
 
-    # Caption wrapping
     words = caption.split()
     lines = []
     line = ""
 
     for word in words:
-
         test = (line + " " + word).strip()
 
         box = draw.textbbox(
@@ -165,7 +156,6 @@ for i, (title, subtitle, caption) in enumerate(slides):
 
         y += 65
 
-    # Bottom CTA
     cta = "FOLLOW FOR MORE"
     box = draw.textbbox((0, 0), cta, font=small_font)
     cta_w = box[2] - box[0]
@@ -179,7 +169,6 @@ for i, (title, subtitle, caption) in enumerate(slides):
 
     img.save(f"frames/frame{i}.png")
 
-# Create video list
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
@@ -191,7 +180,6 @@ with open("frames/list.txt", "w") as f:
 silent_video = "output/silent.mp4"
 final_video = "output/short.mp4"
 
-# Create video
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -206,7 +194,6 @@ subprocess.run([
     silent_video
 ], check=True)
 
-# Add voice
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -222,8 +209,6 @@ subprocess.run([
     final_video
 ], check=True)
 
-print("================================")
-print("SHORTS VIDEO CREATED SUCCESSFULLY")
-print("Voice + Visuals + Captions ready")
-print("Output: output/short.mp4")
-print("================================")
+print("SHORTS CREATED SUCCESSFULLY")
+print("Topic:", topic)
+print("Output:", final_video)
