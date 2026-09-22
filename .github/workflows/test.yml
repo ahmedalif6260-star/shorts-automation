@@ -16,6 +16,10 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Pillow
+        run: |
+          pip install pillow
+
       - name: Install FFmpeg
         run: |
           sudo apt-get update
