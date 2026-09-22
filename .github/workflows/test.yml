@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -21,6 +20,10 @@ jobs:
         run: |
           pip install requests
 
-      - name: Get Trending Topics
+      - name: Get Trending Topic
         run: |
           python get_trending.py
+
+      - name: Create Shorts Script
+        run: |
+          python make_script.py
