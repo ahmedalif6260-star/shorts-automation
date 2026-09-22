@@ -16,9 +16,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install requests
+      - name: Install Python packages
         run: |
-          pip install requests
+          pip install requests pillow
+
+      - name: Install FFmpeg and Voice Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
 
       - name: Get Trending Topic
         run: |
@@ -27,3 +32,13 @@ jobs:
       - name: Create Shorts Script
         run: |
           python make_script.py
+
+      - name: Create Shorts Video
+        run: |
+          python generate_short.py
+
+      - name: Upload generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-short
+          path: output/short.mp4
