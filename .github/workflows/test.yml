@@ -4,11 +4,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run test
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
         run: |
-          echo "YouTube Shorts Automation is working!"
-          echo "GitHub Actions test successful!"
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run Shorts generator
+        run: |
+          python generate_short.py
+
+      - name: Upload generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-short
+          path: output/short.mp4
