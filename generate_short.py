@@ -12,86 +12,75 @@ title_font = ImageFont.truetype(font_path, 72)
 big_font = ImageFont.truetype(font_path, 58)
 small_font = ImageFont.truetype(font_path, 38)
 
-topic = os.environ.get("SHORT_TOPIC", "Human Brain").strip()
+# Get topic from GitHub Actions
+topic = os.environ.get("SHORT_TOPIC", "").strip()
 
-# Free built-in topic library.
-# We can add more topics later.
+if not topic:
+    topic = "Human Brain"
+
+# Topic content
 topics = {
-    "human brain": {
-        "title": "3 AMAZING BRAIN FACTS",
-        "slides": [
-            ("FACT #1", "20% OF YOUR ENERGY",
-             "Your brain uses about 20% of your body's energy."),
-            ("FACT #2", "86 BILLION NEURONS",
-             "Your brain contains around 86 billion neurons."),
-            ("FACT #3", "THOUSANDS OF THOUGHTS",
-             "Your brain can create thousands of thoughts every day.")
-        ]
-    },
+    "human brain": [
+        ("FACT #1", "20% OF YOUR ENERGY",
+         "Your brain uses about 20% of your body's energy."),
+        ("FACT #2", "86 BILLION NEURONS",
+         "Your brain contains around 86 billion neurons."),
+        ("FACT #3", "THOUSANDS OF THOUGHTS",
+         "Your brain can create thousands of thoughts every day.")
+    ],
 
-    "space facts": {
-        "title": "3 AMAZING SPACE FACTS",
-        "slides": [
-            ("FACT #1", "SUNLIGHT TAKES 8 MINUTES",
-             "Light from the Sun takes about 8 minutes to reach Earth."),
-            ("FACT #2", "SPACE IS SILENT",
-             "Sound cannot travel through the vacuum of outer space."),
-            ("FACT #3", "JUPITER IS HUGE",
-             "More than 1,300 Earths could fit inside Jupiter by volume.")
-        ]
-    },
+    "space facts": [
+        ("FACT #1", "SUNLIGHT TAKES 8 MINUTES",
+         "Light from the Sun takes about 8 minutes to reach Earth."),
+        ("FACT #2", "SPACE IS SILENT",
+         "Sound cannot travel through the vacuum of outer space."),
+        ("FACT #3", "JUPITER IS HUGE",
+         "More than 1,300 Earths could fit inside Jupiter by volume.")
+    ],
 
-    "animal facts": {
-        "title": "3 AMAZING ANIMAL FACTS",
-        "slides": [
-            ("FACT #1", "OCTOPUSES HAVE THREE HEARTS",
-             "An octopus has three hearts and blue blood."),
-            ("FACT #2", "ELEPHANTS HAVE GREAT MEMORY",
-             "Elephants can remember other elephants and important places."),
-            ("FACT #3", "CHEETAHS ARE FAST",
-             "Cheetahs can reach speeds of around 60 miles per hour.")
-        ]
-    },
+    "animal facts": [
+        ("FACT #1", "OCTOPUSES HAVE THREE HEARTS",
+         "An octopus has three hearts and blue blood."),
+        ("FACT #2", "ELEPHANTS HAVE GREAT MEMORY",
+         "Elephants can remember other elephants and important places."),
+        ("FACT #3", "CHEETAHS ARE FAST",
+         "Cheetahs can reach speeds of around 60 miles per hour.")
+    ],
 
-    "ocean facts": {
-        "title": "3 AMAZING OCEAN FACTS",
-        "slides": [
-            ("FACT #1", "MOST OF EARTH IS OCEAN",
-             "Oceans cover roughly seventy percent of Earth's surface."),
-            ("FACT #2", "THE OCEAN IS DEEP",
-             "The deepest parts of the ocean reach almost eleven kilometers."),
-            ("FACT #3", "LIFE EXISTS DEEP DOWN",
-             "Many unusual creatures live in the dark deep ocean.")
-        ]
-    }
+    "ocean facts": [
+        ("FACT #1", "MOST OF EARTH IS OCEAN",
+         "Oceans cover roughly seventy percent of Earth's surface."),
+        ("FACT #2", "THE OCEAN IS DEEP",
+         "The deepest parts of the ocean reach almost eleven kilometers."),
+        ("FACT #3", "LIFE EXISTS DEEP DOWN",
+         "Many unusual creatures live in the dark deep ocean.")
+    ]
 }
 
+# Match topic
 key = topic.lower()
 
 if key in topics:
-    content = topics[key]
+    slides = topics[key]
 else:
-    content = topics["human brain"]
+    # Generic fallback instead of silently showing Human Brain
+    slides = [
+        ("TOPIC", topic.upper(),
+         f"Discover interesting facts about {topic}."),
+        ("FACT #2", "LEARN SOMETHING NEW",
+         f"Explore the fascinating world of {topic}."),
+        ("FACT #3", "FOLLOW FOR MORE",
+         f"Follow for more amazing facts about {topic}.")
+    ]
 
-slides = content["slides"]
-
-voice_text = f"""
-Here are three amazing facts about {topic}.
-
-"""
+# Voice script
+voice_text = f"Here are three amazing facts about {topic}."
 
 for number, subtitle, caption in slides:
-    voice_text += f"""
-{number.replace("FACT #", "Fact number ")}.
-{caption}
+    voice_text += f" {number.replace('FACT #', 'Fact number ')}. {caption}"
 
-"""
+voice_text += " Follow for more amazing facts."
 
-voice_text += """
-Follow for more amazing facts.
-"""
-
-# Generate English voice
 voice_file = "output/voice.wav"
 
 subprocess.run([
@@ -104,13 +93,12 @@ subprocess.run([
     voice_text
 ], check=True)
 
-# Create visual slides
+# Create images
 for i, (label, subtitle, caption) in enumerate(slides):
 
     img = Image.new("RGB", (W, H), (8, 15, 35))
     draw = ImageDraw.Draw(img)
 
-    # Background decoration
     draw.ellipse((50, 150, 300, 400), fill=(25, 55, 100))
     draw.ellipse((800, 1450, 1060, 1710), fill=(20, 70, 100))
     draw.ellipse((850, 250, 1030, 430), fill=(30, 45, 90))
@@ -128,7 +116,7 @@ for i, (label, subtitle, caption) in enumerate(slides):
         font=small_font
     )
 
-    # Fact label
+    # Label
     box = draw.textbbox((0, 0), label, font=title_font)
     label_width = box[2] - box[0]
 
@@ -157,13 +145,11 @@ for i, (label, subtitle, caption) in enumerate(slides):
         fill=(20, 30, 55)
     )
 
-    # Wrap caption
     words = caption.split()
     lines = []
     line = ""
 
     for word in words:
-
         test_line = (line + " " + word).strip()
 
         box = draw.textbbox(
@@ -206,7 +192,12 @@ for i, (label, subtitle, caption) in enumerate(slides):
     # CTA
     cta = "FOLLOW FOR MORE"
 
-    box = draw.textbbox((0, 0), cta, font=small_font)
+    box = draw.textbbox(
+        (0, 0),
+        cta,
+        font=small_font
+    )
+
     cta_width = box[2] - box[0]
 
     draw.text(
@@ -218,7 +209,7 @@ for i, (label, subtitle, caption) in enumerate(slides):
 
     img.save(f"frames/frame{i}.png")
 
-# Create concat list
+# FFmpeg slideshow
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
@@ -230,10 +221,8 @@ with open("frames/list.txt", "w") as f:
 silent_video = "output/silent.mp4"
 final_video = "output/short.mp4"
 
-# Create video
 subprocess.run([
-    "ffmpeg",
-    "-y",
+    "ffmpeg", "-y",
     "-f", "concat",
     "-safe", "0",
     "-i", "frames/list.txt",
@@ -247,8 +236,7 @@ subprocess.run([
 
 # Add voice
 subprocess.run([
-    "ffmpeg",
-    "-y",
+    "ffmpeg", "-y",
     "-i", silent_video,
     "-i", voice_file,
     "-map", "0:v:0",
@@ -264,6 +252,5 @@ subprocess.run([
 print("================================")
 print("SHORTS CREATED SUCCESSFULLY")
 print("Topic:", topic)
-print("Voice + Visuals + Captions ready")
 print("Output:", final_video)
 print("================================")
