@@ -260,6 +260,45 @@ subprocess.run([
 ], check=True)
 
 # Add voice
+# Add voice + background music
+
+music_file = "music/background.mp3"
+
+if not os.path.exists(music_file):
+    raise Exception("Background music not found")
+
+subprocess.run([
+    "ffmpeg",
+    "-y",
+    "-i", silent_video,
+    "-i", voice_file,
+    "-stream_loop", "-1",
+    "-i", music_file,
+
+    "-filter_complex",
+    "[1:a]volume=1.0[voice];"
+    "[2:a]volume=0.12[music];"
+    "[voice][music]amix=inputs=2:duration=first:dropout_transition=2[a]",
+
+    "-map", "0:v:0",
+    "-map", "[a]",
+
+    "-c:v", "copy",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-shortest",
+    "-movflags", "+faststart",
+
+    final_video
+], check=True)
+
+print("================================")
+print("SHORT WITH MUSIC CREATED SUCCESSFULLY")
+print("Topic:", topic)
+print("Visual:", visual_path)
+print("Music:", music_file)
+print("Output:", final_video)
+print("================================")
 subprocess.run([
     "ffmpeg",
     "-y",
