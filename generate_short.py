@@ -5,10 +5,12 @@ from PIL import Image, ImageDraw, ImageFont
 os.makedirs("output", exist_ok=True)
 os.makedirs("frames", exist_ok=True)
 
-font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+W, H = 1080, 1920
 
-font = ImageFont.truetype(font_path, 64)
-small_font = ImageFont.truetype(font_path, 42)
+font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+title_font = ImageFont.truetype(font_path, 72)
+big_font = ImageFont.truetype(font_path, 58)
+small_font = ImageFont.truetype(font_path, 38)
 
 voice_text = """
 Here are three amazing facts about the human brain.
@@ -25,12 +27,13 @@ Your brain can create thousands of thoughts every day.
 Follow for more amazing facts.
 """
 
+# Generate free English voice
 voice_file = "output/voice.wav"
 
 subprocess.run([
     "espeak-ng",
     "-v", "en-us",
-    "-s", "155",
+    "-s", "150",
     "-p", "50",
     "-a", "170",
     "-w", voice_file,
@@ -38,52 +41,110 @@ subprocess.run([
 ], check=True)
 
 slides = [
-    ("3 AMAZING FACTS", "ABOUT THE HUMAN BRAIN"),
-    ("FACT #1", "Your brain uses about 20% of your body's energy."),
-    ("FACT #2", "Your brain contains around 86 billion neurons."),
-    ("FACT #3", "Your brain can create thousands of thoughts every day."),
+    (
+        "3 AMAZING",
+        "BRAIN FACTS",
+        "Did you know these facts about your brain?"
+    ),
+    (
+        "FACT #1",
+        "20% OF YOUR ENERGY",
+        "Your brain uses about 20% of your body's energy."
+    ),
+    (
+        "FACT #2",
+        "86 BILLION NEURONS",
+        "Your brain contains around 86 billion neurons."
+    ),
+    (
+        "FACT #3",
+        "THOUSANDS OF THOUGHTS",
+        "Your brain can create thousands of thoughts every day."
+    ),
 ]
 
-for i, (title, text) in enumerate(slides):
+for i, (title, subtitle, caption) in enumerate(slides):
 
-    img = Image.new("RGB", (1080, 1920), (15, 25, 50))
+    img = Image.new("RGB", (W, H), (8, 15, 35))
     draw = ImageDraw.Draw(img)
 
-    title_box = draw.textbbox((0, 0), title, font=font)
-    title_width = title_box[2] - title_box[0]
+    # Decorative circles
+    draw.ellipse((60, 150, 300, 390), fill=(25, 55, 100))
+    draw.ellipse((800, 1450, 1050, 1700), fill=(20, 70, 100))
+    draw.ellipse((850, 250, 1020, 420), fill=(30, 45, 90))
+
+    # Small top label
+    label = "AMAZING FACTS"
+    box = draw.textbbox((0, 0), label, font=small_font)
+    label_w = box[2] - box[0]
 
     draw.text(
-        ((1080 - title_width) / 2, 550),
-        title,
+        ((W - label_w) / 2, 260),
+        label,
         fill="white",
-        font=font
+        font=small_font
     )
 
+    # Main title
+    box = draw.textbbox((0, 0), title, font=title_font)
+    title_w = box[2] - box[0]
+
+    draw.text(
+        ((W - title_w) / 2, 620),
+        title,
+        fill="white",
+        font=title_font
+    )
+
+    # Subtitle
+    box = draw.textbbox((0, 0), subtitle, font=big_font)
+    sub_w = box[2] - box[0]
+
+    draw.text(
+        ((W - sub_w) / 2, 780),
+        subtitle,
+        fill="white",
+        font=big_font
+    )
+
+    # Caption box
+    box_x1 = 90
+    box_y1 = 1050
+    box_x2 = 990
+    box_y2 = 1370
+
+    draw.rounded_rectangle(
+        (box_x1, box_y1, box_x2, box_y2),
+        radius=35,
+        fill=(20, 30, 55)
+    )
+
+    # Caption wrapping
+    words = caption.split()
     lines = []
-    words = text.split()
     line = ""
 
     for word in words:
-        test_line = (line + " " + word).strip()
+
+        test = (line + " " + word).strip()
 
         box = draw.textbbox(
             (0, 0),
-            test_line,
+            test,
             font=small_font
         )
 
-        width = box[2] - box[0]
-
-        if width < 900:
-            line = test_line
+        if box[2] - box[0] < 760:
+            line = test
         else:
-            lines.append(line)
+            if line:
+                lines.append(line)
             line = word
 
     if line:
         lines.append(line)
 
-    y = 850
+    y = 1120
 
     for line in lines:
 
@@ -93,19 +154,32 @@ for i, (title, text) in enumerate(slides):
             font=small_font
         )
 
-        width = box[2] - box[0]
+        line_w = box[2] - box[0]
 
         draw.text(
-            ((1080 - width) / 2, y),
+            ((W - line_w) / 2, y),
             line,
             fill="white",
             font=small_font
         )
 
-        y += 80
+        y += 65
+
+    # Bottom CTA
+    cta = "FOLLOW FOR MORE"
+    box = draw.textbbox((0, 0), cta, font=small_font)
+    cta_w = box[2] - box[0]
+
+    draw.text(
+        ((W - cta_w) / 2, 1530),
+        cta,
+        fill="white",
+        font=small_font
+    )
 
     img.save(f"frames/frame{i}.png")
 
+# Create video list
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
@@ -115,7 +189,9 @@ with open("frames/list.txt", "w") as f:
     f.write(f"file 'frame{len(slides)-1}.png'\n")
 
 silent_video = "output/silent.mp4"
+final_video = "output/short.mp4"
 
+# Create video
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -130,8 +206,7 @@ subprocess.run([
     silent_video
 ], check=True)
 
-final_video = "output/short.mp4"
-
+# Add voice
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -147,6 +222,8 @@ subprocess.run([
     final_video
 ], check=True)
 
-print("English Shorts video created successfully!")
-print("Voice added successfully!")
+print("================================")
+print("SHORTS VIDEO CREATED SUCCESSFULLY")
+print("Voice + Visuals + Captions ready")
 print("Output: output/short.mp4")
+print("================================")
