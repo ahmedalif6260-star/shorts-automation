@@ -1,0 +1,9 @@
+shorts-automation
+├── .github
+├── generate_short.py
+├── get_trending.py
+├── get_visual.py
+├── make_script.py
+├── test.py
+└── music
+    └── background.mp3
