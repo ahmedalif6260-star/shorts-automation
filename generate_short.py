@@ -8,174 +8,145 @@ os.makedirs("frames", exist_ok=True)
 W, H = 1080, 1920
 
 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
 title_font = ImageFont.truetype(font_path, 72)
-big_font = ImageFont.truetype(font_path, 58)
+big_font = ImageFont.truetype(font_path, 48)
 small_font = ImageFont.truetype(font_path, 38)
 
-# Get topic from GitHub Actions
-topic = os.environ.get("SHORT_TOPIC", "").strip()
+# Read generated script
+with open("script.txt", "r", encoding="utf-8") as f:
+    script = f.read().strip()
 
-if not topic:
-    topic = "Human Brain"
+if not script:
+    raise Exception("script.txt is empty")
 
-# Topic content
-topics = {
-    "human brain": [
-        ("FACT #1", "20% OF YOUR ENERGY",
-         "Your brain uses about 20% of your body's energy."),
-        ("FACT #2", "86 BILLION NEURONS",
-         "Your brain contains around 86 billion neurons."),
-        ("FACT #3", "THOUSANDS OF THOUGHTS",
-         "Your brain can create thousands of thoughts every day.")
-    ],
+# Read topic
+topic = "Trending Story"
 
-    "space facts": [
-        ("FACT #1", "SUNLIGHT TAKES 8 MINUTES",
-         "Light from the Sun takes about 8 minutes to reach Earth."),
-        ("FACT #2", "SPACE IS SILENT",
-         "Sound cannot travel through the vacuum of outer space."),
-        ("FACT #3", "JUPITER IS HUGE",
-         "More than 1,300 Earths could fit inside Jupiter by volume.")
-    ],
+for line in script.splitlines():
+    if line.startswith("HOOK:"):
+        continue
 
-    "animal facts": [
-        ("FACT #1", "OCTOPUSES HAVE THREE HEARTS",
-         "An octopus has three hearts and blue blood."),
-        ("FACT #2", "ELEPHANTS HAVE GREAT MEMORY",
-         "Elephants can remember other elephants and important places."),
-        ("FACT #3", "CHEETAHS ARE FAST",
-         "Cheetahs can reach speeds of around 60 miles per hour.")
-    ],
+# Extract sections
+hook = ""
+main_story = ""
+ending = ""
 
-    "ocean facts": [
-        ("FACT #1", "MOST OF EARTH IS OCEAN",
-         "Oceans cover roughly seventy percent of Earth's surface."),
-        ("FACT #2", "THE OCEAN IS DEEP",
-         "The deepest parts of the ocean reach almost eleven kilometers."),
-        ("FACT #3", "LIFE EXISTS DEEP DOWN",
-         "Many unusual creatures live in the dark deep ocean.")
-    ]
-}
+if "HOOK:" in script:
+    hook = script.split("HOOK:", 1)[1].split("MAIN STORY:", 1)[0].strip()
 
-# Match topic
-key = topic.lower()
+if "MAIN STORY:" in script:
+    main_story = script.split("MAIN STORY:", 1)[1].split("ENDING:", 1)[0].strip()
 
-if key in topics:
-    slides = topics[key]
-else:
-    # Generic fallback instead of silently showing Human Brain
-    slides = [
-        ("TOPIC", topic.upper(),
-         f"Discover interesting facts about {topic}."),
-        ("FACT #2", "LEARN SOMETHING NEW",
-         f"Explore the fascinating world of {topic}."),
-        ("FACT #3", "FOLLOW FOR MORE",
-         f"Follow for more amazing facts about {topic}.")
-    ]
+if "ENDING:" in script:
+    ending = script.split("ENDING:", 1)[1].strip()
 
-# Voice script
-voice_text = f"Here are three amazing facts about {topic}."
+if not hook:
+    hook = "Here is what you need to know."
 
-for number, subtitle, caption in slides:
-    voice_text += f" {number.replace('FACT #', 'Fact number ')}. {caption}"
+if not main_story:
+    main_story = script
 
-voice_text += " Follow for more amazing facts."
+if not ending:
+    ending = "Follow for more quick updates."
+
+slides = [
+    ("TRENDING NOW", hook),
+    ("WHAT YOU NEED TO KNOW", main_story),
+    ("FOLLOW FOR MORE", ending)
+]
+
+# Voice text
+voice_text = f"""
+{hook}
+
+{main_story}
+
+{ending}
+"""
 
 voice_file = "output/voice.wav"
 
 subprocess.run([
     "espeak-ng",
     "-v", "en-us",
-    "-s", "150",
+    "-s", "145",
     "-p", "50",
     "-a", "170",
     "-w", voice_file,
     voice_text
 ], check=True)
 
-# Create images
-for i, (label, subtitle, caption) in enumerate(slides):
+# Create video slides
+for i, (title, text) in enumerate(slides):
 
     img = Image.new("RGB", (W, H), (8, 15, 35))
     draw = ImageDraw.Draw(img)
 
-    draw.ellipse((50, 150, 300, 400), fill=(25, 55, 100))
-    draw.ellipse((800, 1450, 1060, 1710), fill=(20, 70, 100))
-    draw.ellipse((850, 250, 1030, 430), fill=(30, 45, 90))
-
-    # Topic
-    topic_display = topic.upper()
-
-    box = draw.textbbox((0, 0), topic_display, font=small_font)
-    topic_width = box[2] - box[0]
-
-    draw.text(
-        ((W - topic_width) / 2, 250),
-        topic_display,
-        fill="white",
-        font=small_font
+    # Decorative circles
+    draw.ellipse(
+        (40, 120, 280, 360),
+        fill=(25, 55, 100)
     )
 
-    # Label
-    box = draw.textbbox((0, 0), label, font=title_font)
-    label_width = box[2] - box[0]
+    draw.ellipse(
+        (820, 1450, 1060, 1690),
+        fill=(20, 70, 100)
+    )
+
+    # Title
+    box = draw.textbbox((0, 0), title, font=title_font)
+    title_width = box[2] - box[0]
 
     draw.text(
-        ((W - label_width) / 2, 600),
-        label,
+        ((W - title_width) / 2, 450),
+        title,
         fill="white",
         font=title_font
     )
 
-    # Subtitle
-    box = draw.textbbox((0, 0), subtitle, font=big_font)
-    subtitle_width = box[2] - box[0]
-
-    draw.text(
-        ((W - subtitle_width) / 2, 770),
-        subtitle,
-        fill="white",
-        font=big_font
-    )
-
-    # Caption box
+    # Text box
     draw.rounded_rectangle(
-        (80, 1040, 1000, 1390),
+        (70, 750, 1010, 1400),
         radius=35,
         fill=(20, 30, 55)
     )
 
-    words = caption.split()
+    # Wrap text
+    words = text.split()
     lines = []
     line = ""
 
     for word in words:
+
         test_line = (line + " " + word).strip()
 
         box = draw.textbbox(
             (0, 0),
             test_line,
-            font=small_font
+            font=big_font
         )
 
-        if box[2] - box[0] < 760:
+        if box[2] - box[0] < 820:
             line = test_line
         else:
             if line:
                 lines.append(line)
+
             line = word
 
     if line:
         lines.append(line)
 
-    y = 1110
+    # Draw lines
+    y = 850
 
-    for line in lines:
+    for line in lines[:8]:
 
         box = draw.textbbox(
             (0, 0),
             line,
-            font=small_font
+            font=big_font
         )
 
         line_width = box[2] - box[0]
@@ -184,32 +155,14 @@ for i, (label, subtitle, caption) in enumerate(slides):
             ((W - line_width) / 2, y),
             line,
             fill="white",
-            font=small_font
+            font=big_font
         )
 
-        y += 65
-
-    # CTA
-    cta = "FOLLOW FOR MORE"
-
-    box = draw.textbbox(
-        (0, 0),
-        cta,
-        font=small_font
-    )
-
-    cta_width = box[2] - box[0]
-
-    draw.text(
-        ((W - cta_width) / 2, 1540),
-        cta,
-        fill="white",
-        font=small_font
-    )
+        y += 70
 
     img.save(f"frames/frame{i}.png")
 
-# FFmpeg slideshow
+# Create slideshow
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
@@ -221,8 +174,10 @@ with open("frames/list.txt", "w") as f:
 silent_video = "output/silent.mp4"
 final_video = "output/short.mp4"
 
+# Video
 subprocess.run([
-    "ffmpeg", "-y",
+    "ffmpeg",
+    "-y",
     "-f", "concat",
     "-safe", "0",
     "-i", "frames/list.txt",
@@ -236,7 +191,8 @@ subprocess.run([
 
 # Add voice
 subprocess.run([
-    "ffmpeg", "-y",
+    "ffmpeg",
+    "-y",
     "-i", silent_video,
     "-i", voice_file,
     "-map", "0:v:0",
@@ -250,7 +206,6 @@ subprocess.run([
 ], check=True)
 
 print("================================")
-print("SHORTS CREATED SUCCESSFULLY")
-print("Topic:", topic)
-print("Output:", final_video)
+print("VIDEO CREATED SUCCESSFULLY")
 print("================================")
+print("Output:", final_video)
