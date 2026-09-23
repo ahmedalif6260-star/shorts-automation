@@ -104,6 +104,31 @@ for i, (title, text) in enumerate(slides):
         )
 
     img = img.resize((W, H))
+        else:
+        new_height = int(img.width / target_ratio)
+        top = (img.height - new_height) // 2
+        img = img.crop(
+            (0, top, img.width, top + new_height)
+        )
+
+    img = img.resize((W, H))
+
+    # Slow cinematic zoom
+    zoom = 1.08 + (i * 0.04)
+
+    crop_w = int(W / zoom)
+    crop_h = int(H / zoom)
+
+    left = (W - crop_w) // 2
+    top = (H - crop_h) // 2
+
+    img = img.crop(
+        (left, top, left + crop_w, top + crop_h)
+    )
+
+    img = img.resize((W, H))
+
+    # Dark overlay
 # Slow cinematic movement
 zoom = 1.08 + (i * 0.04)
 
