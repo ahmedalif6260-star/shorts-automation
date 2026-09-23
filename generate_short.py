@@ -1,5 +1,7 @@
+import os
+import subprocess
+from PIL import Image, ImageDraw, ImageFont
 # Add voice + generated background music
-
 subprocess.run([
     "ffmpeg",
     "-y",
