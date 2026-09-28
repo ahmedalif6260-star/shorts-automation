@@ -13,21 +13,36 @@ title_font = ImageFont.truetype(font_path, 70)
 text_font = ImageFont.truetype(font_path, 46)
 small_font = ImageFont.truetype(font_path, 34)
 
-# Read topic
+# =========================
+# READ TOPIC
+# =========================
+
 with open("topic.txt", "r", encoding="utf-8") as f:
     topic = f.read().strip()
 
-# Read script
+if not topic:
+    raise Exception("No topic found")
+
+# =========================
+# READ SCRIPT
+# =========================
+
 with open("script.txt", "r", encoding="utf-8") as f:
     script = f.read().strip()
 
-# Read visual
+# =========================
+# READ VISUAL
+# =========================
+
 visual_path = "visuals/topic.jpg"
 
 if not os.path.exists(visual_path):
     raise Exception("Visual image not found")
 
-# Extract sections
+# =========================
+# EXTRACT SCRIPT
+# =========================
+
 hook = ""
 main_story = ""
 ending = ""
@@ -56,10 +71,16 @@ slides = [
     ("FOLLOW FOR MORE", ending)
 ]
 
-# Prepare visual
+# =========================
+# PREPARE IMAGE
+# =========================
+
 base = Image.open(visual_path).convert("RGB")
 
-# Voice text
+# =========================
+# CREATE VOICE
+# =========================
+
 voice_text = f"""
 {hook}
 
@@ -70,7 +91,6 @@ voice_text = f"""
 
 voice_file = "output/voice.wav"
 
-# Create voice
 subprocess.run([
     "espeak-ng",
     "-v", "en-us",
@@ -81,31 +101,52 @@ subprocess.run([
     voice_text
 ], check=True)
 
-# Create slides
+# =========================
+# CREATE SLIDES
+# =========================
+
 for i, (title, text) in enumerate(slides):
 
     img = base.copy()
 
-    # Crop to 9:16
+    # -------------------------
+    # Crop image to 9:16
+    # -------------------------
+
     img_ratio = img.width / img.height
     target_ratio = W / H
 
     if img_ratio > target_ratio:
+
         new_width = int(img.height * target_ratio)
+
         left = (img.width - new_width) // 2
+
         img = img.crop(
             (left, 0, left + new_width, img.height)
         )
-        else:
+
+    else:
+
         new_height = int(img.width / target_ratio)
+
         top = (img.height - new_height) // 2
+
         img = img.crop(
             (0, top, img.width, top + new_height)
         )
 
+    # -------------------------
+    # Resize
+    # -------------------------
+
     img = img.resize((W, H))
-    # Slow cinematic zoom
-    zoom = 1.08 + (i * 0.04)
+
+    # -------------------------
+    # Cinematic zoom
+    # -------------------------
+
+    zoom = 1.0 + (i * 0.04)
 
     crop_w = int(W / zoom)
     crop_h = int(H / zoom)
@@ -119,22 +160,10 @@ for i, (title, text) in enumerate(slides):
 
     img = img.resize((W, H))
 
+    # -------------------------
     # Dark overlay
-# Slow cinematic movement
-zoom = 1.08 + (i * 0.04)
+    # -------------------------
 
-crop_w = int(W / zoom)
-crop_h = int(H / zoom)
-
-left = (W - crop_w) // 2
-top = (H - crop_h) // 2
-
-img = img.crop(
-    (left, top, left + crop_w, top + crop_h)
-)
-
-img = img.resize((W, H))
-    # Dark overlay
     overlay = Image.new(
         "RGBA",
         (W, H),
@@ -148,7 +177,10 @@ img = img.resize((W, H))
 
     draw = ImageDraw.Draw(img)
 
+    # -------------------------
     # Topic
+    # -------------------------
+
     topic_text = topic.upper()
 
     box = draw.textbbox(
@@ -166,7 +198,10 @@ img = img.resize((W, H))
         font=small_font
     )
 
+    # -------------------------
     # Title box
+    # -------------------------
+
     draw.rounded_rectangle(
         (50, 450, 1030, 620),
         radius=30,
@@ -188,16 +223,24 @@ img = img.resize((W, H))
         font=title_font
     )
 
+    # -------------------------
     # Caption box
+    # -------------------------
+
     draw.rounded_rectangle(
         (55, 900, 1025, 1450),
         radius=35,
         fill=(0, 0, 0)
     )
 
-    # Wrap text
+    # -------------------------
+    # Wrap caption
+    # -------------------------
+
     words = text.split()
+
     lines = []
+
     line = ""
 
     for word in words:
@@ -211,8 +254,11 @@ img = img.resize((W, H))
         )
 
         if box[2] - box[0] < 850:
+
             line = test_line
+
         else:
+
             if line:
                 lines.append(line)
 
@@ -242,7 +288,10 @@ img = img.resize((W, H))
 
         y += 65
 
-    # CTA
+    # -------------------------
+    # Bottom CTA
+    # -------------------------
+
     cta = "FOLLOW FOR MORE"
 
     box = draw.textbbox(
@@ -260,21 +309,46 @@ img = img.resize((W, H))
         font=small_font
     )
 
-    img.save(f"frames/frame{i}.png")
+    # Save frame
 
-# Create slideshow list
+    img.save(
+        f"frames/frame{i}.png"
+    )
+
+# =========================
+# CREATE FRAME LIST
+# =========================
+
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
-        f.write(f"file 'frame{i}.png'\n")
-        f.write("duration 8\n")
 
-    f.write(f"file 'frame{len(slides)-1}.png'\n")
+        f.write(
+            f"file 'frame{i}.png'\n"
+        )
+
+        f.write(
+            "duration 8\n"
+        )
+
+    f.write(
+        f"file 'frame{len(slides)-1}.png'\n"
+    )
+
+# =========================
+# VIDEO FILES
+# =========================
 
 silent_video = "output/silent.mp4"
+
+voice_video = "output/voice_video.mp4"
+
 final_video = "output/short.mp4"
 
-# Create silent video
+# =========================
+# CREATE SILENT VIDEO
+# =========================
+
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -289,8 +363,9 @@ subprocess.run([
     silent_video
 ], check=True)
 
-# Add voice
-voice_video = "output/voice_video.mp4"
+# =========================
+# ADD VOICE
+# =========================
 
 subprocess.run([
     "ffmpeg",
@@ -307,19 +382,27 @@ subprocess.run([
     voice_video
 ], check=True)
 
-# Add original generated background music
+# =========================
+# CREATE BACKGROUND MUSIC
+# =========================
+
 subprocess.run([
     "ffmpeg",
     "-y",
+
     "-i", voice_video,
+
     "-f", "lavfi",
     "-i", "sine=frequency=196:duration=60",
+
     "-f", "lavfi",
     "-i", "sine=frequency=246.94:duration=60",
+
     "-f", "lavfi",
     "-i", "sine=frequency=293.66:duration=60",
 
     "-filter_complex",
+
     "[1:a]volume=0.035[a];"
     "[2:a]volume=0.025[b];"
     "[3:a]volume=0.018[c];"
@@ -333,17 +416,27 @@ subprocess.run([
     "-c:v", "copy",
     "-c:a", "aac",
     "-b:a", "128k",
+
     "-shortest",
+
     "-movflags", "+faststart",
 
     final_video
+
 ], check=True)
+
+# =========================
+# DONE
+# =========================
 
 print("================================")
 print("SHORT CREATED SUCCESSFULLY")
+print("================================")
 print("Topic:", topic)
 print("Visual:", visual_path)
 print("Voice: YES")
-print("Background Music: YES")
+print("Music: YES")
+print("Zoom: YES")
+print("Format: 1080x1920")
 print("Output:", final_video)
 print("================================")
