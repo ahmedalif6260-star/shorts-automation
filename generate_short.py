@@ -1,5 +1,6 @@
 import os
 import subprocess
+import wave
 from PIL import Image, ImageDraw, ImageFont
 
 os.makedirs("output", exist_ok=True)
@@ -72,13 +73,7 @@ slides = [
 ]
 
 # =========================
-# PREPARE IMAGE
-# =========================
-
-base = Image.open(visual_path).convert("RGB")
-
-# =========================
-# CREATE VOICE
+# VOICE
 # =========================
 
 voice_text = f"""
@@ -102,24 +97,22 @@ subprocess.run([
 ], check=True)
 
 # =========================
-# CREATE SLIDES
+# CREATE VISUAL FRAMES
 # =========================
+
+base = Image.open(visual_path).convert("RGB")
 
 for i, (title, text) in enumerate(slides):
 
     img = base.copy()
 
-    # -------------------------
-    # Crop image to 9:16
-    # -------------------------
-
+    # Crop to 9:16
     img_ratio = img.width / img.height
     target_ratio = W / H
 
     if img_ratio > target_ratio:
 
         new_width = int(img.height * target_ratio)
-
         left = (img.width - new_width) // 2
 
         img = img.crop(
@@ -129,23 +122,15 @@ for i, (title, text) in enumerate(slides):
     else:
 
         new_height = int(img.width / target_ratio)
-
         top = (img.height - new_height) // 2
 
         img = img.crop(
             (0, top, img.width, top + new_height)
         )
 
-    # -------------------------
-    # Resize
-    # -------------------------
-
     img = img.resize((W, H))
 
-    # -------------------------
-    # Cinematic zoom
-    # -------------------------
-
+    # Zoom
     zoom = 1.0 + (i * 0.04)
 
     crop_w = int(W / zoom)
@@ -160,10 +145,7 @@ for i, (title, text) in enumerate(slides):
 
     img = img.resize((W, H))
 
-    # -------------------------
     # Dark overlay
-    # -------------------------
-
     overlay = Image.new(
         "RGBA",
         (W, H),
@@ -177,10 +159,7 @@ for i, (title, text) in enumerate(slides):
 
     draw = ImageDraw.Draw(img)
 
-    # -------------------------
     # Topic
-    # -------------------------
-
     topic_text = topic.upper()
 
     box = draw.textbbox(
@@ -198,10 +177,7 @@ for i, (title, text) in enumerate(slides):
         font=small_font
     )
 
-    # -------------------------
-    # Title box
-    # -------------------------
-
+    # Title
     draw.rounded_rectangle(
         (50, 450, 1030, 620),
         radius=30,
@@ -223,24 +199,15 @@ for i, (title, text) in enumerate(slides):
         font=title_font
     )
 
-    # -------------------------
     # Caption box
-    # -------------------------
-
     draw.rounded_rectangle(
         (55, 900, 1025, 1450),
         radius=35,
         fill=(0, 0, 0)
     )
 
-    # -------------------------
-    # Wrap caption
-    # -------------------------
-
     words = text.split()
-
     lines = []
-
     line = ""
 
     for word in words:
@@ -254,14 +221,10 @@ for i, (title, text) in enumerate(slides):
         )
 
         if box[2] - box[0] < 850:
-
             line = test_line
-
         else:
-
             if line:
                 lines.append(line)
-
             line = word
 
     if line:
@@ -288,10 +251,7 @@ for i, (title, text) in enumerate(slides):
 
         y += 65
 
-    # -------------------------
-    # Bottom CTA
-    # -------------------------
-
+    # CTA
     cta = "FOLLOW FOR MORE"
 
     box = draw.textbbox(
@@ -309,45 +269,30 @@ for i, (title, text) in enumerate(slides):
         font=small_font
     )
 
-    # Save frame
-
     img.save(
         f"frames/frame{i}.png"
     )
 
 # =========================
-# CREATE FRAME LIST
+# FRAME LIST
 # =========================
 
 with open("frames/list.txt", "w") as f:
 
     for i in range(len(slides)):
 
-        f.write(
-            f"file 'frame{i}.png'\n"
-        )
-
-        f.write(
-            "duration 8\n"
-        )
+        f.write(f"file 'frame{i}.png'\n")
+        f.write("duration 8\n")
 
     f.write(
         f"file 'frame{len(slides)-1}.png'\n"
     )
 
 # =========================
-# VIDEO FILES
+# CREATE SILENT VIDEO
 # =========================
 
 silent_video = "output/silent.mp4"
-
-voice_video = "output/voice_video.mp4"
-
-final_video = "output/short.mp4"
-
-# =========================
-# CREATE SILENT VIDEO
-# =========================
 
 subprocess.run([
     "ffmpeg",
@@ -367,6 +312,8 @@ subprocess.run([
 # ADD VOICE
 # =========================
 
+voice_video = "output/voice_video.mp4"
+
 subprocess.run([
     "ffmpeg",
     "-y",
@@ -383,60 +330,166 @@ subprocess.run([
 ], check=True)
 
 # =========================
-# CREATE BACKGROUND MUSIC
+# BACKGROUND MUSIC
 # =========================
+
+music_video = "output/music_video.mp4"
 
 subprocess.run([
     "ffmpeg",
     "-y",
-
     "-i", voice_video,
-
     "-f", "lavfi",
     "-i", "sine=frequency=196:duration=60",
-
     "-f", "lavfi",
     "-i", "sine=frequency=246.94:duration=60",
-
     "-f", "lavfi",
     "-i", "sine=frequency=293.66:duration=60",
-
     "-filter_complex",
-
     "[1:a]volume=0.035[a];"
     "[2:a]volume=0.025[b];"
     "[3:a]volume=0.018[c];"
     "[a][b][c]amix=inputs=3:duration=longest[music];"
     "[0:a]volume=1.0[voice];"
     "[voice][music]amix=inputs=2:duration=first:dropout_transition=2[aout]",
-
     "-map", "0:v:0",
     "-map", "[aout]",
-
     "-c:v", "copy",
     "-c:a", "aac",
     "-b:a", "128k",
-
     "-shortest",
-
     "-movflags", "+faststart",
-
-    final_video
-
+    music_video
 ], check=True)
 
 # =========================
-# DONE
+# CREATE TIMED CAPTIONS
 # =========================
+
+with wave.open(voice_file, "rb") as wav:
+
+    duration = (
+        wav.getnframes()
+        / float(wav.getframerate())
+    )
+
+caption_text = f"{hook} {main_story} {ending}"
+
+words = caption_text.split()
+
+if words:
+
+    time_per_word = duration / len(words)
+
+else:
+
+    time_per_word = 0.5
+
+srt_file = "output/captions.srt"
+
+def srt_time(seconds):
+
+    milliseconds = int(
+        (seconds - int(seconds)) * 1000
+    )
+
+    total = int(seconds)
+
+    hours = total // 3600
+    minutes = (total % 3600) // 60
+    secs = total % 60
+
+    return (
+        f"{hours:02d}:"
+        f"{minutes:02d}:"
+        f"{secs:02d},"
+        f"{milliseconds:03d}"
+    )
+
+with open(
+    srt_file,
+    "w",
+    encoding="utf-8"
+) as f:
+
+    chunk_size = 4
+
+    caption_number = 1
+
+    for start_index in range(
+        0,
+        len(words),
+        chunk_size
+    ):
+
+        chunk = words[
+            start_index:
+            start_index + chunk_size
+        ]
+
+        start = start_index * time_per_word
+
+        end = min(
+            (start_index + len(chunk))
+            * time_per_word,
+            duration
+        )
+
+        text = " ".join(chunk)
+
+        f.write(
+            f"{caption_number}\n"
+        )
+
+        f.write(
+            f"{srt_time(start)} --> "
+            f"{srt_time(end)}\n"
+        )
+
+        f.write(
+            text.upper() + "\n\n"
+        )
+
+        caption_number += 1
+
+# =========================
+# BURN ANIMATED-STYLE CAPTIONS
+# =========================
+
+final_video = "output/short.mp4"
+
+subprocess.run([
+    "ffmpeg",
+    "-y",
+    "-i", music_video,
+    "-vf",
+    "subtitles=output/captions.srt:"
+    "force_style="
+    "'FontName=DejaVu Sans,"
+    "FontSize=20,"
+    "Bold=1,"
+    "PrimaryColour=&H00FFFFFF,"
+    "OutlineColour=&H00000000,"
+    "Outline=3,"
+    "Shadow=1,"
+    "Alignment=2,"
+    "MarginV=520'",
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-crf", "23",
+    "-c:a", "copy",
+    "-movflags", "+faststart",
+    final_video
+], check=True)
 
 print("================================")
 print("SHORT CREATED SUCCESSFULLY")
 print("================================")
 print("Topic:", topic)
-print("Visual:", visual_path)
 print("Voice: YES")
 print("Music: YES")
 print("Zoom: YES")
+print("Captions: YES")
 print("Format: 1080x1920")
 print("Output:", final_video)
 print("================================")
