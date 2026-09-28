@@ -96,14 +96,6 @@ for i, (title, text) in enumerate(slides):
         img = img.crop(
             (left, 0, left + new_width, img.height)
         )
-    else:
-        new_height = int(img.width / target_ratio)
-        top = (img.height - new_height) // 2
-        img = img.crop(
-            (0, top, img.width, top + new_height)
-        )
-
-    img = img.resize((W, H))
         else:
         new_height = int(img.width / target_ratio)
         top = (img.height - new_height) // 2
@@ -112,7 +104,6 @@ for i, (title, text) in enumerate(slides):
         )
 
     img = img.resize((W, H))
-
     # Slow cinematic zoom
     zoom = 1.08 + (i * 0.04)
 
